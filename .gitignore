@@ -25,3 +25,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local planning (keep in project, don't commit)
+RECOMMENDATIONS.md
+PROJECT_TODO.md
