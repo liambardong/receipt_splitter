@@ -1,6 +1,9 @@
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+load_dotenv()
 
 from database import Base, engine
 from routers import people_router, users_router, receipts_router
