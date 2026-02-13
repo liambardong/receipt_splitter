@@ -18,6 +18,10 @@ from schemas import (
     AssignmentResponse,
 )
 
+from logging import Logger
+
+logger = Logger(__name__)
+
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
 
 
@@ -34,6 +38,7 @@ def create_receipt(receipt: ReceiptCreate, db: Session = Depends(get_db)):
     db.add(db_receipt)
     db.commit()
     db.refresh(db_receipt)
+    logger.info("Receipt Created", receipt_id=db_receipt.id)
     return ReceiptResponse.model_validate(db_receipt)
 
 
@@ -66,19 +71,26 @@ def delete_receipt(receipt_id: str, db: Session = Depends(get_db)):
 def add_participant(receipt_id: str, body: ParticipantAdd, db: Session = Depends(get_db)):
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
-        raise HTTPException(status_code=404, detail="Receipt not found")
+        error_message="Receipt not found"
+        log.error("404 Error", details=error_message)
+        raise HTTPException(status_code=404, detail=error_message)
     person = db.query(Person).filter(Person.id == body.person_id).first()
     if not person:
-        raise HTTPException(status_code=404, detail="Person not found")
+        error_message = "Person not found"
+        log.error("404 Error", detail=error_message)
+        raise HTTPException(status_code=404, detail=error_message)
     existing = db.query(ReceiptParticipants).filter(
         ReceiptParticipants.receipt_id == receipt_id,
         ReceiptParticipants.person_id == body.person_id,
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Person already on this receipt")
+        error_message = "Person already on this receipt"
+        log.error("400 Error", detail=error_message)
+        raise HTTPException(status_code=400, detail=error_message)
     rp = ReceiptParticipants(receipt_id=receipt_id, person_id=body.person_id)
     db.add(rp)
     db.commit()
+    logger.info("Added Participant to Receipt", receipt_id=receipt.id, person_id=body.person_id)
     return ParticipantResponse(person=PersonResponse.model_validate(person), paid=rp.paid, paid_at=rp.paid_at)
 
 
@@ -157,6 +169,7 @@ def create_item(receipt_id: str, item: ItemCreate, db: Session = Depends(get_db)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+
     return ItemResponse.model_validate(db_item)
 
 
