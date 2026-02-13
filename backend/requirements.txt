@@ -2,4 +2,5 @@ fastapi==0.115.0
 uvicorn==0.32.0
 sqlalchemy==2.0.36
 email-validator>=2.0.0
+python-dotenv
 
