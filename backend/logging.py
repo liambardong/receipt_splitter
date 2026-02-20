@@ -1,13 +1,14 @@
 import logging
-import owes
+import os
+
 
 def configure():
-        level = os.getenv("LOG_LEVEL", "INFO").upper()
-        level = getattr(logging, level, logging.INFO)
-        logging.basicConfig(
-            level=level,
-            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        )
+    level = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
 
 class Logger:
 
