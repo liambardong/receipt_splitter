@@ -6,7 +6,9 @@ from typing import List
 from database import get_db
 from models import Person, User, Receipt, ReceiptParticipants
 from schemas import UserCreate, UserResponse, ReceiptResponse
+from logging import Logger
 
+logger = Logger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
@@ -14,6 +16,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
+        logger.warning("409 User already exists", email=user.email)
         raise HTTPException(status_code=409, detail="User with this email already exists")
     db_person = Person(first_name="Me", last_name=None)
     db.add(db_person)
@@ -25,7 +28,9 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.refresh(db_user)
     except IntegrityError:
         db.rollback()
+        logger.warning("409 User already exists (integrity)", email=user.email)
         raise HTTPException(status_code=409, detail="User with this email already exists")
+    logger.info("User created", user_id=db_user.id, email=db_user.email)
     return UserResponse.model_validate(db_user)
 
 
@@ -39,6 +44,7 @@ def get_users(db: Session = Depends(get_db)):
 def get_user(user_id: str, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
+        logger.warning("404 User not found", user_id=user_id)
         raise HTTPException(status_code=404, detail="User not found")
     return UserResponse.model_validate(db_user)
 
@@ -47,9 +53,11 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 def delete_user(user_id: str, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
+        logger.warning("404 User not found", user_id=user_id)
         raise HTTPException(status_code=404, detail="User not found")
     db.delete(db_user)
     db.commit()
+    logger.info("User deleted", user_id=user_id)
     return {"status": "success"}
 
 
@@ -57,6 +65,7 @@ def delete_user(user_id: str, db: Session = Depends(get_db)):
 def get_user_receipts(user_id: str, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
+        logger.warning("404 User not found", user_id=user_id)
         raise HTTPException(status_code=404, detail="User not found")
     if not db_user.person_id:
         return []
@@ -67,4 +76,6 @@ def get_user_receipts(user_id: str, db: Session = Depends(get_db)):
         .distinct()
         .all()
     )
-    return [ReceiptResponse.model_validate(r) for r in receipts]
+    result = [ReceiptResponse.model_validate(r) for r in receipts]
+    logger.info("User receipts listed", user_id=user_id, count=len(result))
+    return result
